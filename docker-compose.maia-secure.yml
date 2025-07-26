@@ -1,0 +1,102 @@
+version: '3.8'
+
+services:
+  # CouchDB for data storage (shared with other services)
+  couchdb:
+    image: couchdb:latest
+    container_name: hieofone_couchdb_maia
+    restart: always
+    environment:
+      COUCHDB_USER: admin
+      COUCHDB_PASSWORD: adminpassword
+    volumes:
+      - ./couchdb_data:/opt/couchdb/data
+      - ./couchdb_config:/opt/couchdb/etc/local.d
+    ports:
+      - "5984:5984"
+    networks:
+      - hieofone_network
+
+  # MAIA Vue AI Example (Secure Local Development)
+  maia-vue-ai-secure:
+    build:
+      context: ./MAIA-vue-ai-example
+      dockerfile: Dockerfile.secure
+    container_name: hieofone_maia_vue_ai_secure
+    restart: always
+    depends_on:
+      - couchdb
+    env_file:
+      - ./MAIA-vue-ai-example/.env
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - LOCAL_TESTING=true
+      - SINGLE_PATIENT_MODE=true
+      - PATIENT_ID=demo_patient_001
+    ports:
+      - "3001:3001"
+    volumes:
+      # Mount source code for development (optional)
+      - ./MAIA-vue-ai-example/src:/app/src:ro
+      # Mount logs
+      - ./logs:/app/logs
+    networks:
+      - hieofone_network
+    security_opt:
+      - no-new-privileges:true
+    read_only: false
+    tmpfs:
+      - /tmp
+      - /var/tmp
+
+  # Optional: NOSH3 for healthcare data integration
+  nosh3:
+    build:
+      context: ./nosh3
+      dockerfile: Dockerfile.simple
+    container_name: hieofone_nosh3_maia
+    restart: always
+    depends_on:
+      - couchdb
+    env_file:
+      - ./nosh3/.env
+    environment:
+      - NODE_ENV=development
+      - LOCAL_TESTING=true
+      - LOCAL_TEST_PASSWORD=test123
+      - AUTH=simple
+    ports:
+      - "4000:4000"
+    networks:
+      - hieofone_network
+
+  # Optional: Trustee-Community for authentication
+  trustee-community:
+    build:
+      context: ./Trustee-Community
+      dockerfile: Dockerfile.simple
+    container_name: hieofone_trustee_community_maia
+    restart: always
+    depends_on:
+      - couchdb
+    env_file:
+      - ./Trustee-Community/.env
+    environment:
+      - NODE_ENV=development
+      - LOCAL_TESTING=true
+      - LOCAL_TEST_PASSWORD=test123
+      - BYPASS_EMAIL_VERIFICATION=true
+    ports:
+      - "3000:3000"
+    networks:
+      - hieofone_network
+
+networks:
+  hieofone_network:
+    driver: bridge
+
+volumes:
+  couchdb_data:
+  couchdb_config:
+  logs: 

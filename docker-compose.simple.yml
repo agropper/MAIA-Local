@@ -1,0 +1,126 @@
+version: '3.8'
+
+services:
+  # CouchDB for data storage
+  couchdb:
+    image: couchdb:latest
+    container_name: hieofone_couchdb_simple
+    restart: always
+    environment:
+      COUCHDB_USER: admin
+      COUCHDB_PASSWORD: adminpassword
+    volumes:
+      - ./couchdb_data:/opt/couchdb/data
+      - ./couchdb_config:/opt/couchdb/etc/local.d
+    ports:
+      - "5984:5984"
+    networks:
+      - hieofone_network
+
+  # MAIA Vue AI Example (Simplified)
+  maia-vue-ai:
+    build:
+      context: ./MAIA-vue-ai-example
+      dockerfile: Dockerfile.simple
+    container_name: hieofone_maia_vue_ai_simple
+    restart: always
+    depends_on:
+      - couchdb
+    env_file:
+      - ./MAIA-vue-ai-example/.env
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - LOCAL_TESTING=true
+    ports:
+      - "3001:3001"
+    networks:
+      - hieofone_network
+
+  # NOSH3 (Simplified)
+  nosh3:
+    build:
+      context: ./nosh3
+      dockerfile: Dockerfile.simple
+    container_name: hieofone_nosh3_simple
+    restart: always
+    depends_on:
+      - couchdb
+    env_file:
+      - ./nosh3/.env
+    environment:
+      - NODE_ENV=development
+      - LOCAL_TESTING=true
+      - LOCAL_TEST_PASSWORD=test123
+      - AUTH=simple
+    ports:
+      - "4000:4000"
+    networks:
+      - hieofone_network
+
+  # Trustee-Community (Simplified)
+  trustee-community:
+    build:
+      context: ./Trustee-Community
+      dockerfile: Dockerfile.simple
+    container_name: hieofone_trustee_community_simple
+    restart: always
+    depends_on:
+      - couchdb
+    env_file:
+      - ./Trustee-Community/.env
+    environment:
+      - NODE_ENV=development
+      - LOCAL_TESTING=true
+      - LOCAL_TEST_PASSWORD=test123
+      - BYPASS_EMAIL_VERIFICATION=true
+    ports:
+      - "3000:3000"
+    networks:
+      - hieofone_network
+
+  # Trustee-Proxy (Simplified)
+  trustee-proxy:
+    build:
+      context: ./Trustee-Proxy
+      dockerfile: Dockerfile.simple
+    container_name: hieofone_trustee_proxy_simple
+    restart: always
+    depends_on:
+      - couchdb
+    env_file:
+      - ./Trustee-Proxy/.env
+    environment:
+      - NODE_ENV=development
+      - LOCAL_TESTING=true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./proxy_data:/data
+    ports:
+      - "4001:4000"
+    networks:
+      - hieofone_network
+
+  # Vue3-GNAP (Simplified)
+  vue3-gnap:
+    build:
+      context: ./vue3-gnap
+      dockerfile: Dockerfile.simple
+    container_name: hieofone_vue3_gnap_simple
+    restart: always
+    environment:
+      - NODE_ENV=development
+      - LOCAL_TESTING=true
+    ports:
+      - "3002:80"
+    networks:
+      - hieofone_network
+
+networks:
+  hieofone_network:
+    driver: bridge
+
+volumes:
+  couchdb_data:
+  couchdb_config:
+  proxy_data: 

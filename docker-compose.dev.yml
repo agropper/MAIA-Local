@@ -1,0 +1,170 @@
+version: '3.8'
+
+services:
+  # Traefik Router
+  router:
+    image: traefik:latest
+    container_name: hieofone_router_dev
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"  # Traefik dashboard
+    restart: always
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - ./traefik-acme:/acme
+    command:
+      - "--api.insecure=true"
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.web.acme.email=admin@hieofone.com"
+      - "--certificatesresolvers.web.acme.storage=/acme/certs.json"
+      - "--certificatesresolvers.web.acme.httpchallenge.entrypoint=web"
+    labels:
+      - "traefik.enable=false"
+    networks:
+      - hieofone_network
+
+  # CouchDB for Trustee-Community and nosh3
+  couchdb:
+    image: couchdb:latest
+    container_name: hieofone_couchdb_dev
+    restart: always
+    environment:
+      COUCHDB_USER: admin
+      COUCHDB_PASSWORD: adminpassword
+    volumes:
+      - ./couchdb_data:/opt/couchdb/data
+      - ./couchdb_config:/opt/couchdb/etc/local.d
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.couchdb.loadbalancer.server.port=5984"
+      - "traefik.http.routers.couchdb.entrypoints=web"
+      - "traefik.http.routers.couchdb.rule=Host(`db.localhost`)"
+    networks:
+      - hieofone_network
+
+  # MAIA Vue AI Example (Development)
+  maia-vue-ai:
+    build:
+      context: ./MAIA-vue-ai-example
+      dockerfile: Dockerfile.dev
+    container_name: hieofone_maia_vue_ai_dev
+    restart: always
+    depends_on:
+      - router
+    env_file:
+      - ./MAIA-vue-ai-example/.env
+    volumes:
+      - ./MAIA-vue-ai-example:/app
+      - /app/node_modules
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.maia-vue-ai.loadbalancer.server.port=3001"
+      - "traefik.http.routers.maia-vue-ai.entrypoints=web"
+      - "traefik.http.routers.maia-vue-ai.rule=Host(`maia.localhost`)"
+    networks:
+      - hieofone_network
+
+  # NOSH3 (Development)
+  nosh3:
+    build:
+      context: ./nosh3
+      dockerfile: Dockerfile.dev
+    container_name: hieofone_nosh3_dev
+    restart: always
+    depends_on:
+      - couchdb
+      - router
+    env_file:
+      - ./nosh3/.env
+    volumes:
+      - ./nosh3:/app
+      - /app/node_modules
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.nosh3.loadbalancer.server.port=4000"
+      - "traefik.http.routers.nosh3.entrypoints=web"
+      - "traefik.http.routers.nosh3.rule=Host(`nosh.localhost`)"
+    networks:
+      - hieofone_network
+
+  # Trustee-Community (Development)
+  trustee-community:
+    build:
+      context: ./Trustee-Community
+      dockerfile: Dockerfile.dev
+    container_name: hieofone_trustee_community_dev
+    restart: always
+    depends_on:
+      - couchdb
+      - router
+    env_file:
+      - ./Trustee-Community/.env
+    volumes:
+      - ./Trustee-Community:/app
+      - /app/node_modules
+      - /app/.next
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.trustee-community.loadbalancer.server.port=3000"
+      - "traefik.http.routers.trustee-community.entrypoints=web"
+      - "traefik.http.routers.trustee-community.rule=Host(`trustee.localhost`)"
+    networks:
+      - hieofone_network
+
+  # Trustee-Proxy (Development)
+  trustee-proxy:
+    build:
+      context: ./Trustee-Proxy
+      dockerfile: Dockerfile.dev
+    container_name: hieofone_trustee_proxy_dev
+    restart: always
+    depends_on:
+      - router
+    env_file:
+      - ./Trustee-Proxy/.env
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./proxy_data:/data
+      - ./Trustee-Proxy:/app
+      - /app/node_modules
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.trustee-proxy.loadbalancer.server.port=4000"
+      - "traefik.http.routers.trustee-proxy.entrypoints=web"
+      - "traefik.http.routers.trustee-proxy.rule=Host(`proxy.localhost`)"
+    networks:
+      - hieofone_network
+
+  # Vue3-GNAP (Development)
+  vue3-gnap:
+    build:
+      context: ./vue3-gnap
+      dockerfile: Dockerfile.dev
+    container_name: hieofone_vue3_gnap_dev
+    restart: always
+    depends_on:
+      - router
+    volumes:
+      - ./vue3-gnap:/app
+      - /app/node_modules
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.vue3-gnap.loadbalancer.server.port=3000"
+      - "traefik.http.routers.vue3-gnap.entrypoints=web"
+      - "traefik.http.routers.vue3-gnap.rule=Host(`gnap.localhost`)"
+    networks:
+      - hieofone_network
+
+networks:
+  hieofone_network:
+    driver: bridge
+
+volumes:
+  couchdb_data:
+  couchdb_config:
+  proxy_data: 
