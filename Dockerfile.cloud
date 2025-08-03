@@ -4,13 +4,13 @@ FROM node:20.19.2-alpine
 # Set working directory
 WORKDIR /app
 
-# Copy package files from MAIA-vue-ai-example subdirectory
-COPY MAIA-vue-ai-example/package*.json ./
+# Copy package files first for better caching
+COPY MAIA-vue-ai-example/package.json MAIA-vue-ai-example/package-lock.json ./
 
 # Install dependencies
 RUN npm ci --only=production
 
-# Copy source code from MAIA-vue-ai-example subdirectory
+# Copy the entire MAIA-vue-ai-example directory
 COPY MAIA-vue-ai-example/ .
 
 # Build the application
