@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  # MAIA Vue AI Example (Unified Cloudant Development)
+  maia-vue-ai-secure:
+    build:
+      context: ./MAIA-vue-ai-example
+      dockerfile: Dockerfile.secure
+    container_name: hieofone_maia_vue_ai_secure
+    restart: always
+    env_file:
+      - ./MAIA-vue-ai-example/.env
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - LOCAL_TESTING=true
+      - SINGLE_PATIENT_MODE=true
+      - PATIENT_ID=demo_patient_001
+      # Cloudant configuration (no local CouchDB needed)
+      - CLOUDANT_URL=${CLOUDANT_URL}
+      - CLOUDANT_USERNAME=${CLOUDANT_USERNAME}
+      - CLOUDANT_PASSWORD=${CLOUDANT_PASSWORD}
+      - CLOUDANT_DATABASE=${CLOUDANT_DATABASE}
+    ports:
+      - "127.0.0.1:3001:3001"  # Bind to localhost only
+    volumes:
+      # Mount source code for development (optional)
+      - ./MAIA-vue-ai-example/src:/app/src:ro
+      # Mount logs
+      - ./logs:/app/logs
+    networks:
+      - hieofone_network
+    security_opt:
+      - no-new-privileges:true
+    read_only: false
+    tmpfs:
+      - /tmp
+      - /var/tmp
+
+networks:
+  hieofone_network:
+    driver: bridge
+
+volumes:
+  logs: 

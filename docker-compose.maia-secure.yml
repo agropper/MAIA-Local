@@ -1,21 +1,8 @@
 version: '3.8'
 
 services:
-  # CouchDB for data storage (shared with other services)
-  couchdb:
-    image: couchdb:latest
-    container_name: hieofone_couchdb_maia
-    restart: always
-    environment:
-      COUCHDB_USER: maia_admin
-      COUCHDB_PASSWORD: MaiaSecure2024!
-    volumes:
-      - ./couchdb_data:/opt/couchdb/data
-      - ./couchdb_config:/opt/couchdb/etc/local.d
-    ports:
-      - "127.0.0.1:5984:5984"  # Bind to localhost only
-    networks:
-      - hieofone_network
+  # Cloudant is used for data storage (no local CouchDB needed)
+  # MAIA connects directly to Cloudant via environment variables
 
   # MAIA Vue AI Example (Secure Local Development)
   maia-vue-ai-secure:
@@ -52,53 +39,47 @@ services:
       - /tmp
       - /var/tmp
 
-  # Optional: NOSH3 for healthcare data integration
-  nosh3:
-    build:
-      context: ./nosh3
-      dockerfile: Dockerfile.simple
-    container_name: hieofone_nosh3_maia
-    restart: always
-    depends_on:
-      - couchdb
-    env_file:
-      - ./nosh3/.env
-    environment:
-      - NODE_ENV=development
-      - LOCAL_TESTING=true
-      - LOCAL_TEST_PASSWORD=test123
-      - AUTH=simple
-    ports:
-      - "4000:4000"
-    networks:
-      - hieofone_network
+  # Optional: NOSH3 for healthcare data integration (requires separate CouchDB setup)
+  # nosh3:
+  #   build:
+  #     context: ./nosh3
+  #     dockerfile: Dockerfile.simple
+  #   container_name: hieofone_nosh3_maia
+  #   restart: always
+  #   env_file:
+  #     - ./nosh3/.env
+  #   environment:
+  #     - NODE_ENV=development
+  #     - LOCAL_TESTING=true
+  #     - LOCAL_TEST_PASSWORD=test123
+  #     - AUTH=simple
+  #   ports:
+  #     - "4000:4000"
+  #   networks:
+  #     - hieofone_network
 
-  # Optional: Trustee-Community for authentication
-  trustee-community:
-    build:
-      context: ./Trustee-Community
-      dockerfile: Dockerfile.simple
-    container_name: hieofone_trustee_community_maia
-    restart: always
-    depends_on:
-      - couchdb
-    env_file:
-      - ./Trustee-Community/.env
-    environment:
-      - NODE_ENV=development
-      - LOCAL_TESTING=true
-      - LOCAL_TEST_PASSWORD=test123
-      - BYPASS_EMAIL_VERIFICATION=true
-    ports:
-      - "3000:3000"
-    networks:
-      - hieofone_network
+  # Optional: Trustee-Community for authentication (requires separate CouchDB setup)
+  # trustee-community:
+  #   build:
+  #     context: ./Trustee-Community
+  #     dockerfile: Dockerfile.simple
+  #   container_name: hieofone_trustee_community_maia
+  #   restart: always
+  #   env_file:
+  #     - ./Trustee-Community/.env
+  #   environment:
+  #     - NODE_ENV=development
+  #     - LOCAL_TESTING=true
+  #     - LOCAL_TEST_PASSWORD=test123
+  #     - BYPASS_EMAIL_VERIFICATION=true
+  #   ports:
+  #     - "3000:3000"
+  #   networks:
+  #     - hieofone_network
 
 networks:
   hieofone_network:
     driver: bridge
 
 volumes:
-  couchdb_data:
-  couchdb_config:
   logs: 
